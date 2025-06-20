@@ -1,14 +1,16 @@
+# step2 :- python -m streamlit run "C:\Users\91860\Desktop\SocialPulse\app.py"
+# step1 :- pip install --user pandas streamlit clean-text matplotlib wordcloud vaderSentiment langdetect googletrans==4.0.0-rc1 altair
+
 import pandas as pd
 import streamlit as st
+import cleantext
 import matplotlib.pyplot as plt
-from wordcloud import WordCloud, STOPWORDS
-import altair as alt
+from wordcloud import WordCloud
 
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from langdetect import detect
 from googletrans import Translator
 from functools import lru_cache
-import re
 
 # Initialize analyzers
 analyzer = SentimentIntensityAnalyzer()
@@ -16,7 +18,7 @@ translator = Translator()
 aspects = ['price', 'quality', 'service', 'delivery']
 
 # -------------------------
-# Helper Functions
+# 🔹 Helper Functions
 # -------------------------
 @lru_cache(maxsize=10000)
 def cached_translate_to_english(text):
@@ -52,25 +54,18 @@ def final_sentiment(row):
     else:
         return 'Neutral'
 
-def simple_clean(text):
-    text = str(text).lower()
-    text = re.sub(r"http\S+", "", text)  # remove URLs
-    text = re.sub(r"[^a-z\s]", "", text)  # remove punctuation and numbers
-    text = re.sub(r"\s+", " ", text)  # remove extra spaces
-    return text.strip()
-
 @st.cache_data
 def convert_df(df):
     return df.to_csv(index=False).encode('utf-8')
 
 # -------------------------
-# Streamlit UI
+# 🔹 Streamlit UI
 # -------------------------
 st.set_page_config(page_title="Sentiment Analyzer", layout="wide")
 st.title("🧠 Product Review Sentiment Analyzer")
 
 # -------------------------
-# 1. Single Text Analysis
+# 🔹 1. Single Text Analysis
 # -------------------------
 with st.expander('🔍 Single Text Analysis'):
     text = st.text_input('Enter a review:')
@@ -90,17 +85,18 @@ with st.expander('🔍 Single Text Analysis'):
 
     pre = st.text_input('Clean the text:')
     if pre:
-        cleaned = simple_clean(pre)
+        cleaned = cleantext.clean(pre, clean_all=False, extra_spaces=True,
+                                  stopwords=True, lowercase=True, numbers=True, punct=True)
         st.write('🧼 Cleaned Text:', cleaned)
 
 # -------------------------
-# 2. File Upload
+# 🔹 2. File Upload
 # -------------------------
 st.subheader("📂 Upload a Review CSV File")
 uploaded_file = st.file_uploader("Upload your CSV", type=["csv"])
 
 # -------------------------
-# 3. Main Analysis
+# 🔹 3. Main Analysis
 # -------------------------
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -151,35 +147,31 @@ if uploaded_file:
         st.write(df.head())
 
         # -------------------------
-        # Sentiment Distribution (Altair)
+        # 🔹 Sentiment Distribution
         # -------------------------
         st.subheader("📊 Sentiment Distribution")
-        sentiment_counts = df['final_sentiment'].value_counts().reset_index()
-        sentiment_counts.columns = ['Sentiment', 'Count']
-        bar_chart = alt.Chart(sentiment_counts).mark_bar().encode(
-            x=alt.X('Sentiment', sort=['Positive', 'Neutral', 'Negative']),
-            y='Count',
-            color='Sentiment',
-            tooltip=['Sentiment', 'Count']
-        ).interactive()
-        st.altair_chart(bar_chart, use_container_width=True)
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.bar_chart(df['final_sentiment'].value_counts())
+
+        with col2:
+            fig, ax = plt.subplots()
+            ax.pie(df['final_sentiment'].value_counts(), labels=df['final_sentiment'].value_counts().index,
+                   autopct="%1.1f%%", startangle=90)
+            ax.axis('equal')
+            st.pyplot(fig)
 
         # -------------------------
-        # Product-wise Breakdown (Altair)
+        # 🔹 Product-wise Breakdown
         # -------------------------
         if 'ProductName' in df.columns:
             st.subheader("🛍️ Product-wise Sentiment Breakdown")
-            product_group = df.groupby(['ProductName', 'final_sentiment']).size().reset_index(name='Count')
-            bar_chart_prod = alt.Chart(product_group).mark_bar().encode(
-                x=alt.X('ProductName:N', sort='-y'),
-                y='Count:Q',
-                color='final_sentiment:N',
-                tooltip=['ProductName', 'final_sentiment', 'Count']
-            ).interactive()
-            st.altair_chart(bar_chart_prod, use_container_width=True)
+            product_group = df.groupby(['ProductName', 'final_sentiment']).size().unstack(fill_value=0)
+            st.bar_chart(product_group)
 
         # -------------------------
-        # Aspect Mentions Breakdown
+        # 🔹 Aspect Mentions Breakdown
         # -------------------------
         st.subheader("🔎 Aspect Mentions Breakdown")
         aspect_cols = [aspect + '_mention' for aspect in aspects]
@@ -187,34 +179,25 @@ if uploaded_file:
         st.write(aspect_counts)
 
         # -------------------------
-        # Word Cloud (with stopwords and product names)
+        # 🔹 Word Cloud
         # -------------------------
         st.subheader("☁️ Word Cloud of All Reviews")
-        stopwords = set(STOPWORDS)
-        if 'ProductName' in df.columns:
-            prod_names = df['ProductName'].astype(str).str.lower().unique()
-            stopwords.update(prod_names)
         all_text = " ".join(df['Review_Summary_English'].astype(str).tolist())
-        wordcloud = WordCloud(
-            width=800,
-            height=400,
-            background_color='white',
-            stopwords=stopwords
-        ).generate(all_text)
+        wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_text)
         fig_wc, ax_wc = plt.subplots(figsize=(12, 6))
         ax_wc.imshow(wordcloud, interpolation='bilinear')
         ax_wc.axis('off')
         st.pyplot(fig_wc)
 
         # -------------------------
-        # Download Results
+        # 🔹 Download Results
         # -------------------------
         st.subheader("⬇️ Download Sentiment CSV")
         csv = convert_df(df)
         st.download_button("Download CSV", csv, "sentiment_results.csv", "text/csv")
 
         # -------------------------
-        # Show Full Data
+        # 🔹 Show Full Data
         # -------------------------
         with st.expander("🗂 Show All Reviews"):
             st.dataframe(df)

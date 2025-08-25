@@ -28,8 +28,6 @@ The system is designed to be **scalable**, allowing integration of additional e-
 - **Future Datasets**:  
   - Designed to integrate additional e-commerce platforms, social media platforms, or any other text-based review sources.  
 
-> All current datasets are included in the `datasets/` folder.
-
 ---
 
 ## Built With

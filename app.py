@@ -14,13 +14,42 @@ import numpy as np
 # Initialize analyzers
 analyzer = SentimentIntensityAnalyzer()
 translator = Translator()
-aspects = ['delivery', 'service', 'price', 'quality']
+aspects = [
+    'delivery',
+    'service',
+    'price',
+    'quality',
+    'packaging',
+    'usability',
+    'performance',
+    'warranty',
+    'return_policy',
+    'durability',
+    'availability',
+    'support',
+    'features',
+    'design',
+    'charging',
+]
+
 aspect_display = {
     'delivery': 'Delivery',
     'service': 'Customer Service',
     'price': 'Price',
-    'quality': 'Product Quality'
+    'quality': 'Product Quality',
+    'packaging': 'Packaging',
+    'usability': 'Ease of Use',
+    'performance': 'Performance',
+    'warranty': 'Warranty',
+    'return_policy': 'Return/Refund Policy',
+    'durability': 'Durability',
+    'availability': 'Availability',
+    'support': 'Technical Support',
+    'features': 'Features',
+    'design': 'Design & Look',
+    'charging': 'Charging/Battery',
 }
+
 
 # -------------------------
 # Helper Functions
@@ -297,3 +326,4 @@ if uploaded_file:
         # -------------------------
         with st.expander("🗂 Show All Reviews"):
             st.dataframe(df)
+
